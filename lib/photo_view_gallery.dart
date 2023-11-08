@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -21,6 +23,17 @@ class _PhotoViewPageGalleryState extends State<PhotoViewPageGallery> {
     'https://static.independent.co.uk/2020/10/30/08/newFile-2.jpg?width=640&auto=webp&quality=75'
   ];
 
+  var imageList = [];
+
+
+  ImagePicker? imagepicker;
+
+  @override
+  void initState() {
+    super.initState();
+    imagepicker= ImagePicker();
+  }
+
 
 
   @override
@@ -28,9 +41,25 @@ class _PhotoViewPageGalleryState extends State<PhotoViewPageGallery> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Photo View Gallery'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: IconButton(onPressed: ()async{
+              var photos = await imagepicker!.pickMultiImage(maxWidth: 1080,maxHeight: 1080);
+              for (var item in photos!){
+                imageList.add(item.path);
+
+              }
+              setState(() {
+
+              });
+            }, icon: const Icon(Icons.add_circle)),
+
+          )
+        ],
       ),
-      body: GridView.builder(
-        itemCount: imageList2.length,
+      body: imageList.isNotEmpty == true ? GridView.builder(
+        itemCount: imageList.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,childAspectRatio: 1),
           itemBuilder: (context,index){
@@ -42,10 +71,10 @@ class _PhotoViewPageGalleryState extends State<PhotoViewPageGallery> {
                   return PhotoViewDetail(currentIndex: index, imageList: imageList2,);
                 }));
 
-              },child: Image.network(imageList2[index], fit: BoxFit.cover)),
+              },child: Image.file(File(imageList[index]), fit: BoxFit.cover)),
             );
 
-      }),
+      }) : Container(),
 
     );
   }
@@ -117,7 +146,7 @@ class _PhotoViewDetailState extends State<PhotoViewDetail> {
               return GestureDetector(onTap: (){
                 pageController!.jumpToPage(itemIndex);
                 carouselController!.jumpToPage(itemIndex);
-              },child: Image.network(widget.imageList![itemIndex]));
+              },child: Image.file(File(widget.imageList![itemIndex])));
 
           },
             options: CarouselOptions(
@@ -125,7 +154,7 @@ class _PhotoViewDetailState extends State<PhotoViewDetail> {
               height: 100,
               enlargeCenterPage: true,
               autoPlayInterval: const Duration(seconds: 1),
-              autoPlay: true,
+              autoPlay: false,
 
             ) ,
           )
@@ -149,26 +178,29 @@ class _PhotoViewDetailState extends State<PhotoViewDetail> {
   }
 
   PhotoViewGallery buildPhotoViewGallery() {
-    return PhotoViewGallery.builder(itemCount: widget.imageList!.length, builder: (context,index){
-          return PhotoViewGalleryPageOptions(imageProvider: NetworkImage(widget.imageList![index],
+    return PhotoViewGallery.builder(
+      itemCount: widget.imageList!.length,
+      builder: (context,index){
+        return PhotoViewGalleryPageOptions(
+          imageProvider: FileImage(
+            File(widget.imageList![index]),
           ),
             minScale: PhotoViewComputedScale.contained*0.6,
             maxScale: PhotoViewComputedScale.contained*1.6,
             scaleStateController: photoViewScaleStateController,
             );
-        },
-          pageController: pageController,
-          scrollDirection: Axis.horizontal,
-          //scrollPhysics: NeverScrollableScrollPhysics(),
-          enableRotation: false,
-          onPageChanged: (index){
-            setState(() {
-              photoViewScaleStateController!.reset();
-              widget.currentIndex = index;
-            });
-
-          },
-        );
+      },
+      pageController: pageController,
+      scrollDirection: Axis.horizontal,
+      //scrollPhysics: NeverScrollableScrollPhysics(),
+      enableRotation: false,
+      onPageChanged: (index){
+        setState(() {
+          photoViewScaleStateController!.reset();
+          widget.currentIndex = index;
+        });
+      },
+    );
   }
 }
 
