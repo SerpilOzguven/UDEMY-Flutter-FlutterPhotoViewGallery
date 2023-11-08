@@ -1,5 +1,8 @@
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:photo_view/photo_view.dart';
+import 'package:photo_view/photo_view_gallery.dart';
 
 class PhotoViewPageGallery extends StatefulWidget {
   const PhotoViewPageGallery({super.key});
@@ -18,10 +21,6 @@ class _PhotoViewPageGalleryState extends State<PhotoViewPageGallery> {
     'https://static.independent.co.uk/2020/10/30/08/newFile-2.jpg?width=640&auto=webp&quality=75'
   ];
 
-  var imageList = [];
-
-  ImagePicker? imagePicker;
-
 
 
   @override
@@ -35,9 +34,141 @@ class _PhotoViewPageGalleryState extends State<PhotoViewPageGallery> {
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,childAspectRatio: 1),
           itemBuilder: (context,index){
-            return Image.network(imageList2[index]);
+            return Padding(
+              padding: const EdgeInsets.all(2.0),
+
+              child: GestureDetector(onTap: (){
+                Navigator.push(context, MaterialPageRoute(builder: (context){
+                  return PhotoViewDetail(currentIndex: index, imageList: imageList2,);
+                }));
+
+              },child: Image.network(imageList2[index], fit: BoxFit.cover)),
+            );
 
       }),
+
     );
   }
 }
+
+class PhotoViewDetail extends StatefulWidget {
+
+  int? currentIndex;
+  List? imageList;
+
+   PhotoViewDetail({super.key, this.imageList, this.currentIndex});
+
+  @override
+  State<PhotoViewDetail> createState() => _PhotoViewDetailState();
+}
+
+class _PhotoViewDetailState extends State<PhotoViewDetail> {
+
+  PhotoViewScaleStateController? photoViewScaleStateController;
+  CarouselController? carouselController;
+  PageController? pageController;
+
+
+
+
+  @override
+  void initState() {
+    super.initState();
+    photoViewScaleStateController = PhotoViewScaleStateController();
+    carouselController = CarouselController();
+    pageController = PageController(initialPage: widget.currentIndex!);
+  }
+
+  @override
+  void dispose() {
+    photoViewScaleStateController!.dispose();
+    pageController!.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: const Text('Photo Gallery'),
+      ),
+      body: Stack(
+        children: [
+          buildPhotoViewGallery(),
+
+          buildPositioned()
+        ],
+      ),
+    );
+  }
+
+  Positioned buildPositioned() {
+    return Positioned(
+          bottom: 30,
+          right: 0,
+          left: 0,
+
+
+          child: CarouselSlider.builder(
+            carouselController: carouselController,
+            itemCount: widget.imageList!.length,
+            itemBuilder:(context,itemIndex,pageIndex){
+              return GestureDetector(onTap: (){
+                pageController!.jumpToPage(itemIndex);
+                carouselController!.jumpToPage(itemIndex);
+              },child: Image.network(widget.imageList![itemIndex]));
+
+          },
+            options: CarouselOptions(
+              viewportFraction: 0.21,
+              height: 100,
+              enlargeCenterPage: true,
+              autoPlayInterval: const Duration(seconds: 1),
+              autoPlay: true,
+
+            ) ,
+          )
+        );
+  }
+
+  Row buildRow() {
+    return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: widget.imageList!
+              .map(
+                  (item) => Container(
+
+                    width: 10,
+                    margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 3),
+                    decoration:  BoxDecoration(color: widget.currentIndex == widget.imageList!.indexOf(item) ?Colors.white : Colors.grey,
+                      shape: BoxShape.circle),
+                  ))
+              .toList(),
+        );
+  }
+
+  PhotoViewGallery buildPhotoViewGallery() {
+    return PhotoViewGallery.builder(itemCount: widget.imageList!.length, builder: (context,index){
+          return PhotoViewGalleryPageOptions(imageProvider: NetworkImage(widget.imageList![index],
+          ),
+            minScale: PhotoViewComputedScale.contained*0.6,
+            maxScale: PhotoViewComputedScale.contained*1.6,
+            scaleStateController: photoViewScaleStateController,
+            );
+        },
+          pageController: pageController,
+          scrollDirection: Axis.horizontal,
+          //scrollPhysics: NeverScrollableScrollPhysics(),
+          enableRotation: false,
+          onPageChanged: (index){
+            setState(() {
+              photoViewScaleStateController!.reset();
+              widget.currentIndex = index;
+            });
+
+          },
+        );
+  }
+}
+
